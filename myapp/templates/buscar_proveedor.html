@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">🔍 Buscar Proveedor</h2>
+
+    <div class="card shadow">
+        <div class="card-header bg-info text-white">Buscar por ID Persona o NIT Empresa</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-info text-white">Buscar</button>
+            </form>
+        </div>
+    </div>
+
+    {% if resultado %}
+    <div class="card mt-4">
+        <div class="card-header bg-success text-white">✅ Resultado</div>
+        <div class="card-body">
+            {% if resultado.id_persona %}
+            <p><b>ID Persona:</b> {{ resultado.id_persona }}</p>
+            <p><b>Nombre:</b> {{ resultado.nombre }} {{ resultado.primer_apellido }} {{ resultado.segundo_apellido }}
+            </p>
+            {% elif resultado.nit %}
+            <p><b>NIT:</b> {{ resultado.nit }}</p>
+            <p><b>Razón Social:</b> {{ resultado.razon_social }}</p>
+            {% endif %}
+            <p><b>Dirección:</b> {{ resultado.direccion }}</p>
+            <p><b>Email:</b> {{ resultado.email }}</p>
+            <p><b>Teléfono:</b> {{ resultado.telefono }}</p>
+            <p><b>Productos:</b> {{ resultado.productos_suministrados }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

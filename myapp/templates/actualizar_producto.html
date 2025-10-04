@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="container mt-5">
+    <div class="row">
+        <section class="col-md-6 offset-md-3">
+            <div class="card shadow p-4">
+                <h2 class="text-center mb-4">✏️ Actualizar Producto</h2>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+
+                    <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-success">💾 Guardar cambios</button>
+                        <a href="{% url 'productos_menu' %}" class="btn btn-secondary">↩ Volver</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}

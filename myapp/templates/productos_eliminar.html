@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="container mt-5">
+    <div class="row">
+        <section class="col-md-6 offset-md-3">
+            <div class="card shadow p-4 text-center">
+                <h2 class="mb-4">⚠️ Confirmar eliminación</h2>
+
+                <p>¿Seguro que deseas eliminar el producto <strong>{{ producto.nombre }}</strong> ({{ producto.codigo }})?</p>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">🗑️ Sí, eliminar</button>
+                    <a href="{% url 'productos_menu' %}" class="btn btn-secondary">↩ Cancelar</a>
+                </form>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}

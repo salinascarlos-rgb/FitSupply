@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2 class="mb-4 text-center">📦 Menú de Proveedores</h2>
+
+    <!-- Menú de opciones -->
+    <ul class="list-group list-group-horizontal mb-4 justify-content-center">
+        <li class="list-group-item">
+            <a href="?opcion=registrar_persona" class="text-decoration-none">👤 Registrar Persona</a>
+        </li>
+        <li class="list-group-item">
+            <a href="?opcion=registrar_empresa" class="text-decoration-none">🏢 Registrar Empresa</a>
+        </li>
+        <li class="list-group-item">
+            <a href="?opcion=buscar" class="text-decoration-none">🔍 Buscar Proveedor</a>
+        </li>
+    </ul>
+
+    <!-- Mensajes -->
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ========================= -->
+    <!-- Registrar Persona -->
+    <!-- ========================= -->
+    {% if opcion == "registrar_persona" %}
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">Registrar Persona</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form_persona.as_p }}
+                <button type="submit" class="btn btn-success">💾 Guardar</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================= -->
+    <!-- Registrar Empresa -->
+    <!-- ========================= -->
+    {% if opcion == "registrar_empresa" %}
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">Registrar Empresa</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form_empresa.as_p }}
+                <button type="submit" class="btn btn-success">💾 Guardar</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================= -->
+    <!-- Buscar Proveedor -->
+    <!-- ========================= -->
+    {% if opcion == "buscar" %}
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">Buscar Proveedor</div>
+        <div class="card-body">
+            <form method="post" class="mb-3">
+                {% csrf_token %}
+                {{ form_buscar.as_p }}
+                <button type="submit" class="btn btn-info text-white">🔍 Buscar</button>
+            </form>
+
+            {% if resultado %}
+            <div class="card mt-3 p-3">
+                <h5>Resultado:</h5>
+                {% if resultado.id_persona %}
+                <p><b>ID Persona:</b> {{ resultado.id_persona }}</p>
+                <p><b>Nombre:</b> {{ resultado.nombre }} {{ resultado.primer_apellido }} {{ resultado.segundo_apellido }}</p>
+                {% elif resultado.nit %}
+                <p><b>NIT:</b> {{ resultado.nit }}</p>
+                <p><b>Razón Social:</b> {{ resultado.razon_social }}</p>
+                {% endif %}
+                <p><b>Email:</b> {{ resultado.email }}</p>
+                <p><b>Teléfono:</b> {{ resultado.telefono }}</p>
+                <p><b>Productos:</b> {{ resultado.productos_suministrados }}</p>
+                <p><b>Estado:</b> {% if resultado.activo %}✅ Activo{% else %}❌ Inactivo{% endif %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================= -->
+    <!-- Lista de Proveedores -->
+    <!-- ========================= -->
+    <h3 class="mt-4">📋 Lista de Proveedores</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tipo</th>
+                    <th>ID / NIT</th>
+                    <th>Nombre / Razón Social</th>
+                    <th>Email</th>
+                    <th>Teléfono</th>
+                    <th>Productos</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in proveedores_personas %}
+                <tr>
+                    <td>Persona</td>
+                    <td>{{ p.id_persona }}</td>
+                    <td>{{ p.nombre }} {{ p.primer_apellido }} {{ p.segundo_apellido }}</td>
+                    <td>{{ p.email }}</td>
+                    <td>{{ p.telefono }}</td>
+                    <td>{{ p.productos_suministrados }}</td>
+                    <td>
+                        {% if p.activo %}
+                            ✅ Activo
+                        {% else %}
+                            ❌ Inactivo
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'actualizar_proveedor_persona' p.id_persona %}" class="btn btn-warning btn-sm">✏️ Editar</a>
+                        {% if p.activo %}
+                            <a href="{% url 'proveedor_desactivar_persona' p.id_persona %}" class="btn btn-danger btn-sm">🚫 Desactivar</a>
+                        {% else %}
+                            <a href="{% url 'proveedor_reactivar_persona' p.id_persona %}" class="btn btn-success btn-sm">✅ Activar</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% for e in proveedores_empresas %}
+                <tr>
+                    <td>Empresa</td>
+                    <td>{{ e.nit }}</td>
+                    <td>{{ e.razon_social }}</td>
+                    <td>{{ e.email }}</td>
+                    <td>{{ e.telefono }}</td>
+                    <td>{{ e.productos_suministrados }}</td>
+                    <td>
+                        {% if e.activo %}
+                            ✅ Activo
+                        {% else %}
+                            ❌ Inactivo
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'actualizar_proveedor_empresa' e.nit %}" class="btn btn-warning btn-sm">✏️ Editar</a>
+                        {% if e.activo %}
+                            <a href="{% url 'proveedor_desactivar_empresa' e.nit %}" class="btn btn-danger btn-sm">🚫 Desactivar</a>
+                        {% else %}
+                            <a href="{% url 'proveedor_reactivar_empresa' e.nit %}" class="btn btn-success btn-sm">✅ Activar</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% if not proveedores_personas and not proveedores_empresas %}
+                <tr>
+                    <td colspan="8" class="text-center">⚠️ No hay proveedores registrados</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
