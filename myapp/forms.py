@@ -132,6 +132,12 @@ class BuscarProveedorForm(forms.Form):
     )
 
 # Formulario de Cliente (registrar / actualizar)
+# ===============================
+# Formulario de Cliente (registrar / actualizar)
+# ===============================
+from django import forms
+from .models import Cliente
+
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
@@ -145,14 +151,39 @@ class ClienteForm(forms.ModelForm):
             "frecuente",
         ]
         widgets = {
-            "id_cliente": forms.TextInput(attrs={"class": "form-control", "placeholder": "ID único del cliente"}),
-            "nombre": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre"}),
-            "primer_apellido": forms.TextInput(attrs={"class": "form-control", "placeholder": "Primer apellido"}),
-            "segundo_apellido": forms.TextInput(attrs={"class": "form-control", "placeholder": "Segundo apellido (opcional)"}),
-            "correo": forms.EmailInput(attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"}),
-            "telefono": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej: 3001234567"}),
+            "id_cliente": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "ID único del cliente"
+            }),
+            "nombre": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Nombre"
+            }),
+            "primer_apellido": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Primer apellido"
+            }),
+            "segundo_apellido": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Segundo apellido (opcional)"
+            }),
+            "correo": forms.EmailInput(attrs={
+                "class": "form-control",
+                "placeholder": "correo@ejemplo.com"
+            }),
+            "telefono": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Ej: 3001234567"
+            }),
             "frecuente": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Si el formulario se usa para editar un cliente existente
+        if self.instance and self.instance.pk:
+            self.fields['id_cliente'].disabled = True
+
 
 # Formulario de búsqueda (ID, nombre, apellidos, correo o teléfono)
 class BuscarClienteForm(forms.Form):
