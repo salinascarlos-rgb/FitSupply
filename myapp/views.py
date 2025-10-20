@@ -5,11 +5,9 @@ from django.contrib.auth import login, logout, authenticate
 from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import ProveedorPersonaForm,ProveedorEmpresaForm,ProveedorPersonaForm, ProveedorEmpresaForm, ProductoForm, BuscarProductoForm, ActualizarProductoForm, BuscarProveedorForm, ClienteForm, BuscarClienteForm
-from .models import ProveedorPersona, ProveedorEmpresa, Producto, Cliente
-
-# Create your views here.
-
+from django.db.models import Q
+from .forms import ProveedorForm, ProveedorPersonaForm, ProveedorEmpresaForm, ProductoForm, BuscarProductoForm, ActualizarProductoForm, BuscarProveedorForm, ClienteForm, BuscarClienteForm, FacturaCompraForm, DetalleCompraForm
+from .models import Proveedor, ProveedorPersona, ProveedorEmpresa, Producto, Cliente, FacturaCompra, DetalleCompra
 
 def home(request):
     return render(request, 'home.html')
@@ -106,9 +104,15 @@ def productos_menu(request):
         if request.method == "POST":
             form_registrar = ProductoForm(request.POST)
             if form_registrar.is_valid():
-                form_registrar.save()
-                mensaje = "✅ Producto registrado con éxito."
-                form_registrar = ProductoForm()  # resetear formulario
+                codigo = form_registrar.cleaned_data["codigo"]
+
+                # Verificar duplicado
+                if Producto.objects.filter(codigo=codigo).exists():
+                    mensaje = "❌ Ya existe un producto con ese código."
+                else:
+                    form_registrar.save()
+                    mensaje = "✅ Producto registrado con éxito."
+                    form_registrar = ProductoForm()  # Resetear formulario
         else:
             form_registrar = ProductoForm()
         form_buscar = BuscarProductoForm()
@@ -129,7 +133,7 @@ def productos_menu(request):
         else:
             form_buscar = BuscarProductoForm()
 
-    # Lista de productos
+    # Lista de productos (activos e inactivos)
     productos = Producto.objects.all().order_by("codigo")
 
     return render(request, "productos_menu.html", {
@@ -142,6 +146,9 @@ def productos_menu(request):
     })
 
 
+# ------------------------------
+# Actualizar producto
+# ------------------------------
 @login_required
 def actualizar_producto(request, codigo):
     producto = get_object_or_404(Producto, codigo=codigo)
@@ -163,30 +170,46 @@ def actualizar_producto(request, codigo):
     })
 
 
+# ------------------------------
+# Desactivar producto
+# ------------------------------
 @login_required
-def eliminar_producto(request, codigo):
+def desactivar_producto(request, codigo):
     producto = get_object_or_404(Producto, codigo=codigo)
-
     if request.method == "POST":
-        producto.delete()
-        messages.success(request, "✅ Producto eliminado con éxito.")
+        producto.activo = False
+        producto.save()
+        messages.warning(request, f"🚫 Producto {producto.nombre} desactivado.")
         return redirect("productos_menu")
-
-    return render(request, "productos_eliminar.html", {
-        "producto": producto
+    return render(request, "producto_confirmar_estado.html", {
+        "producto": producto,
+        "accion": "desactivar"
     })
 
 
 # ------------------------------
-# Menú de proveedores
+# Activar producto
 # ------------------------------
 @login_required
+def activar_producto(request, codigo):
+    producto = get_object_or_404(Producto, codigo=codigo)
+    producto.activo = True
+    producto.save()
+    messages.success(request, f"✅ Producto {producto.nombre} activado.")
+    return redirect("productos_menu")
+
+# ============================================================
+# MENÚ PRINCIPAL DE PROVEEDORES (UNIFICADO)
+# ============================================================
+
+@login_required
 def proveedores_menu(request):
-    opcion = request.GET.get("opcion", None)
+    # pestaña activa por defecto
+    opcion = request.GET.get("opcion", "registrar_persona")
     mensaje = None
     resultado = None
 
-    # Formularios vacíos por defecto
+    # formularios por defecto
     form_persona = ProveedorPersonaForm()
     form_empresa = ProveedorEmpresaForm()
     form_buscar = BuscarProveedorForm()
@@ -197,8 +220,17 @@ def proveedores_menu(request):
     if request.method == "POST" and opcion == "registrar_persona":
         form_persona = ProveedorPersonaForm(request.POST)
         if form_persona.is_valid():
-            form_persona.save()
-            messages.success(request, "✅ Proveedor Persona registrado correctamente.")
+            persona = form_persona.save()
+            # crear o actualizar entrada puente Proveedor
+            prov, created = Proveedor.objects.get_or_create(
+                persona=persona,
+                defaults={"tipo": "persona", "activo": persona.activo}
+            )
+            if not created:
+                prov.tipo = "persona"
+                prov.activo = persona.activo
+                prov.save()
+            messages.success(request, "✅ Proveedor (persona) registrado correctamente.")
             return redirect("proveedores_menu")
         else:
             messages.error(request, "⚠️ Corrige los errores en el formulario de persona.")
@@ -206,39 +238,48 @@ def proveedores_menu(request):
     # ---------------------------
     # Registrar Empresa
     # ---------------------------
-    if request.method == "POST" and opcion == "registrar_empresa":
+    elif request.method == "POST" and opcion == "registrar_empresa":
         form_empresa = ProveedorEmpresaForm(request.POST)
         if form_empresa.is_valid():
-            form_empresa.save()
-            messages.success(request, "✅ Proveedor Empresa registrado correctamente.")
+            empresa = form_empresa.save()
+            # crear o actualizar entrada puente Proveedor
+            prov, created = Proveedor.objects.get_or_create(
+                empresa=empresa,
+                defaults={"tipo": "empresa", "activo": empresa.activo}
+            )
+            if not created:
+                prov.tipo = "empresa"
+                prov.activo = empresa.activo
+                prov.save()
+            messages.success(request, "✅ Proveedor (empresa) registrado correctamente.")
             return redirect("proveedores_menu")
         else:
             messages.error(request, "⚠️ Corrige los errores en el formulario de empresa.")
 
     # ---------------------------
-    # Buscar Proveedor
+    # Buscar proveedor
     # ---------------------------
-    if request.method == "POST" and opcion == "buscar":
+    elif request.method == "POST" and opcion == "buscar":
         form_buscar = BuscarProveedorForm(request.POST)
         if form_buscar.is_valid():
-            query = form_buscar.cleaned_data["query"]
-
-            # Buscar primero en personas
-            try:
-                resultado = ProveedorPersona.objects.get(id_persona=query)
-            except ProveedorPersona.DoesNotExist:
-                try:
-                    resultado = ProveedorEmpresa.objects.get(nit=query)
-                except ProveedorEmpresa.DoesNotExist:
-                    mensaje = "⚠️ No se encontró un proveedor con ese ID/NIT."
+            q = form_buscar.cleaned_data["query"].strip()
+            # buscar en la tabla puente para incluir ambos tipos
+            resultado = Proveedor.objects.select_related("persona", "empresa").filter(
+                Q(persona__id_persona__icontains=q) |
+                Q(persona__nombre__icontains=q) |
+                Q(persona__primer_apellido__icontains=q) |
+                Q(empresa__nit__icontains=q) |
+                Q(empresa__razon_social__icontains=q)
+            )
+            if not resultado.exists():
+                mensaje = "⚠️ No se encontró un proveedor con ese ID/NIT o nombre."
         else:
             mensaje = "⚠️ Por favor ingrese un valor válido."
 
     # ---------------------------
-    # Lista de proveedores (activos y desactivos)
+    # Lista general de proveedores (usa la tabla puente)
     # ---------------------------
-    proveedores_personas = ProveedorPersona.objects.all()
-    proveedores_empresas = ProveedorEmpresa.objects.all()
+    proveedores = Proveedor.objects.select_related("persona", "empresa").all().order_by("tipo", "id")
 
     return render(request, "proveedores_menu.html", {
         "opcion": opcion,
@@ -247,113 +288,61 @@ def proveedores_menu(request):
         "form_buscar": form_buscar,
         "resultado": resultado,
         "mensaje": mensaje,
-        "proveedores_personas": proveedores_personas,
-        "proveedores_empresas": proveedores_empresas,
+        "proveedores": proveedores,
     })
 
-
-# ------------------------------
-# Actualizar Proveedor Persona
-# ------------------------------
+# ============================================================
+# ACTUALIZAR PROVEEDOR
+# ============================================================
 @login_required
-def actualizar_proveedor_persona(request, id_persona):
-    proveedor = get_object_or_404(ProveedorPersona, id_persona=id_persona)
+def actualizar_proveedor(request, pk):
+    proveedor = get_object_or_404(Proveedor, pk=pk)
     if request.method == "POST":
-        form = ProveedorPersonaForm(request.POST, instance=proveedor)
+        form = ProveedorForm(request.POST, instance=proveedor)
         if form.is_valid():
             form.save()
-            messages.success(request, "✅ Proveedor Persona actualizado con éxito.")
+            messages.success(request, "✅ Proveedor actualizado con éxito.")
             return redirect("proveedores_menu")
+        else:
+            messages.error(request, "⚠️ Corrige los errores en el formulario.")
     else:
-        form = ProveedorPersonaForm(instance=proveedor)
+        form = ProveedorForm(instance=proveedor)
 
-    return render(request, "actualizar_proveedor_persona.html", {
+    return render(request, "actualizar_proveedor.html", {
         "form": form,
         "proveedor": proveedor
     })
 
 
-# ------------------------------
-# Actualizar Proveedor Empresa
-# ------------------------------
+# ============================================================
+# DESACTIVAR PROVEEDOR
+# ============================================================
 @login_required
-def actualizar_proveedor_empresa(request, nit):
-    proveedor = get_object_or_404(ProveedorEmpresa, nit=nit)
-    if request.method == "POST":
-        form = ProveedorEmpresaForm(request.POST, instance=proveedor)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "✅ Proveedor Empresa actualizado con éxito.")
-            return redirect("proveedores_menu")
-    else:
-        form = ProveedorEmpresaForm(instance=proveedor)
-
-    return render(request, "actualizar_proveedor_empresa.html", {
-        "form": form,
-        "proveedor": proveedor
-    })
-
-
-# ------------------------------
-# Desactivar Proveedor Persona
-# ------------------------------
-@login_required
-def proveedor_desactivar_persona(request, id_persona):
-    proveedor = get_object_or_404(ProveedorPersona, id_persona=id_persona)
+def proveedor_desactivar(request, pk):
+    proveedor = get_object_or_404(Proveedor, pk=pk)
     if request.method == "POST":
         proveedor.activo = False
         proveedor.save()
-        messages.success(request, "🚫 Proveedor Persona desactivado con éxito.")
+        messages.success(request, "🚫 Proveedor desactivado con éxito.")
         return redirect("proveedores_menu")
 
-    return render(request, "proveedor_desactivar_persona.html", {
+    return render(request, "proveedor_confirmar_accion.html", {
         "proveedor": proveedor,
-        "tipo": "persona",
         "accion": "desactivar"
     })
 
 
-# ------------------------------
-# Desactivar Proveedor Empresa
-# ------------------------------
+# ============================================================
+# REACTIVAR PROVEEDOR
+# ============================================================
 @login_required
-def proveedor_desactivar_empresa(request, nit):
-    proveedor = get_object_or_404(ProveedorEmpresa, nit=nit)
-    if request.method == "POST":
-        proveedor.activo = False
-        proveedor.save()
-        messages.success(request, "🚫 Proveedor Empresa desactivado con éxito.")
-        return redirect("proveedores_menu")
-
-    return render(request, "proveedor_desactivar_empresa.html", {
-        "proveedor": proveedor,
-        "tipo": "empresa",
-        "accion": "desactivar"
-    })
-
-
-# ------------------------------
-# Reactivar Proveedor Persona
-# ------------------------------
-@login_required
-def proveedor_reactivar_persona(request, id_persona):
-    proveedor = get_object_or_404(ProveedorPersona, id_persona=id_persona)
+def proveedor_reactivar(request, pk):
+    proveedor = get_object_or_404(Proveedor, pk=pk)
     proveedor.activo = True
     proveedor.save()
-    messages.success(request, "✅ Proveedor Persona reactivado con éxito.")
+    messages.success(request, "✅ Proveedor reactivado con éxito.")
     return redirect("proveedores_menu")
 
-
-# ------------------------------
-# Reactivar Proveedor Empresa
-# ------------------------------
-@login_required
-def proveedor_reactivar_empresa(request, nit):
-    proveedor = get_object_or_404(ProveedorEmpresa, nit=nit)
-    proveedor.activo = True
-    proveedor.save()
-    messages.success(request, "✅ Proveedor Empresa reactivado con éxito.")
-    return redirect("proveedores_menu")
 
 # ======================
 # Menú de clientes (listar + registrar + buscar)
@@ -473,3 +462,93 @@ def activar_cliente(request, id_cliente):
     cliente.save()
     messages.success(request, f"✅ Cliente {cliente.nombre} activado.")
     return redirect("clientes_menu")
+
+# ======================
+# Registrar compra
+# ======================
+
+@login_required
+def registrar_compra(request):
+    if request.method == "POST":
+        factura_form = FacturaCompraForm(request.POST)
+        detalle_form = DetalleCompraForm(request.POST)
+        if factura_form.is_valid() and detalle_form.is_valid():
+            factura = factura_form.save()
+            detalle = detalle_form.save(commit=False)
+            detalle.factura = factura
+            detalle.save()
+
+            factura.total += detalle.subtotal
+            factura.save()
+
+            messages.success(request, "✅ Compra registrada correctamente.")
+            return redirect("compras_menu")
+    else:
+        factura_form = FacturaCompraForm()
+        detalle_form = DetalleCompraForm()
+
+    return render(request, "compras_menu.html", {
+        "factura_form": factura_form,
+        "detalle_form": detalle_form,
+    })
+
+# ======================
+# Registrar compra
+# ======================
+@login_required
+def movimientos_compra(request):
+    facturas = FacturaCompra.objects.prefetch_related("detalles").order_by("-fecha")
+    return render(request, "movimientos_compras.html", {"facturas": facturas})
+
+@login_required
+def facturas_compra(request):
+    opcion = request.GET.get("opcion", "registrar")
+
+    if opcion == "registrar":
+        if request.method == "POST":
+            form_factura = FacturaCompraForm(request.POST)
+            form_detalle = DetalleCompraForm(request.POST)
+            if form_factura.is_valid() and form_detalle.is_valid():
+                factura = form_factura.save()
+                detalle = form_detalle.save(commit=False)
+                detalle.factura = factura
+                detalle.save()
+                messages.success(request, "✅ Factura registrada correctamente.")
+                return redirect("facturas_compra")
+        else:
+            form_factura = FacturaCompraForm()
+            form_detalle = DetalleCompraForm()
+        return render(request, "facturas_compra_menu.html", {
+            "opcion": opcion,
+            "form_factura": form_factura,
+            "form_detalle": form_detalle,
+        })
+
+    elif opcion == "consultar":
+        facturas = FacturaCompra.objects.all().order_by("-fecha_emision")
+        return render(request, "facturas_compra_menu.html", {
+            "opcion": opcion,
+            "facturas": facturas,
+        })
+
+# ======================
+# Detalle de factura
+# ======================
+@login_required
+def factura_detalle(request, pk):
+    factura = get_object_or_404(FacturaCompra, pk=pk)
+    detalles = DetalleCompra.objects.filter(factura=factura)
+
+    return render(request, "detalle_factura.html", {
+        "factura": factura,
+        "detalles": detalles,
+    })
+
+@login_required
+def eliminar_factura(request, pk):
+    factura = get_object_or_404(FacturaCompra, pk=pk)
+    if request.method == "POST":
+        factura.delete()
+        messages.success(request, "🗑️ Factura eliminada correctamente.")
+        return redirect("facturas_compra")
+    return render(request, "factura_confirmar_eliminar.html", {"factura": factura})

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow p-4 text-center">
+        <h3>
+            {% if accion == "desactivar" %}
+                🚫 Desactivar producto
+            {% else %}
+                ✅ Activar producto
+            {% endif %}
+        </h3>
+        <p>¿Estás seguro que deseas {{ accion }} el producto <strong>{{ producto.nombre }}</strong>?</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                Sí, {{ accion|title }}
+            </button>
+            <a href="{% url 'productos_menu' %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

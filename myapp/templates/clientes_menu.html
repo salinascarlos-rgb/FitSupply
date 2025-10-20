@@ -5,21 +5,28 @@
     <div class="row">
         <section class="col-md-10 offset-md-1">
             <div class="card shadow p-4">
-                <h2 class="text-center mb-4">Gestión de Clientes</h2>
+                <h2 class="text-center mb-4">👥 Gestión de Clientes</h2>
 
-                {% if mensaje %}
-                <div class="alert alert-info">{{ mensaje }}</div>
+                {% if messages %}
+                {% for message in messages %}
+                <div
+                    class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} text-center">
+                    {{ message }}
+                </div>
+                {% endfor %}
                 {% endif %}
 
                 <!-- Pestañas -->
                 <ul class="nav nav-tabs mb-3">
                     <li class="nav-item">
-                        <a class="nav-link {% if opcion == 'registrar' %}active{% endif %}" href="?opcion=registrar">➕
-                            Registrar Cliente</a>
+                        <a class="nav-link {% if opcion == 'registrar' %}active{% endif %}" href="?opcion=registrar">
+                            ➕ Registrar Cliente
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if opcion == 'buscar' %}active{% endif %}" href="?opcion=buscar">🔍 Buscar
-                            Cliente</a>
+                        <a class="nav-link {% if opcion == 'buscar' %}active{% endif %}" href="?opcion=buscar">
+                            🔍 Buscar Cliente
+                        </a>
                     </li>
                 </ul>
 
@@ -50,9 +57,7 @@
                     <p><strong>Correo:</strong> {{ c.correo }}</p>
                     <p><strong>Teléfono:</strong> {{ c.telefono }}</p>
                     <p><strong>Frecuente:</strong> {{ c.frecuente|yesno:"Sí,No" }}</p>
-                    <p><strong>Estado:</strong>
-                        {% if c.activo %} ✅ Activo {% else %} ❌ Inactivo {% endif %}
-                    </p>
+                    <p><strong>Estado:</strong> {% if c.activo %}✅ Activo{% else %}❌ Inactivo{% endif %}</p>
                     <hr>
                     {% endfor %}
                 </div>
@@ -60,12 +65,11 @@
                 {% endif %}
             </div>
 
-            <!-- ========================= -->
-            <!-- Lista de Clientes -->
-            <!-- ========================= -->
-            <h3 class="mt-4">📋 Lista de Clientes</h3>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-bordered">
+            <!-- Lista -->
+            <h3 class="mt-4 text-center">📋 Lista de Clientes</h3>
+            <div class="table-responsive" style="overflow-x: auto; width: 100%;">
+                <table class="table table-striped table-hover table-bordered text-center align-middle"
+                    style="min-width: 1100px;">
                     <thead class="table-dark">
                         <tr>
                             <th>ID</th>
@@ -79,48 +83,40 @@
                     </thead>
                     <tbody>
                         {% for c in clientes %}
-                        <tr>
+                        <tr class="{% if not c.activo %}table-secondary{% endif %}">
                             <td>{{ c.id_cliente }}</td>
                             <td>{{ c.nombre }} {{ c.primer_apellido }} {{ c.segundo_apellido }}</td>
                             <td>{{ c.correo }}</td>
                             <td>{{ c.telefono }}</td>
-                            <td>
-                                {% if c.frecuente %}
-                                ⭐ Sí
-                                {% else %}
-                                No
-                                {% endif %}
-                            </td>
+                            <td>{% if c.frecuente %}⭐ Sí{% else %}No{% endif %}</td>
                             <td>
                                 {% if c.activo %}
-                                ✅ Activo
+                                <span class="badge bg-success">Activo</span>
                                 {% else %}
-                                ❌ Inactivo
+                                <span class="badge bg-danger">Inactivo</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <a href="{% url 'actualizar_cliente' c.id_cliente %}" class="btn btn-warning btn-sm">✏️
                                     Editar</a>
                                 {% if c.activo %}
-                                <a href="{% url 'desactivar_cliente' c.id_cliente %}" class="btn btn-danger btn-sm">🚫
-                                    Desactivar</a>
+                                <a href="{% url 'desactivar_cliente' c.id_cliente %}"
+                                    class="btn btn-outline-danger btn-sm">🚫 Desactivar</a>
                                 {% else %}
-                                <a href="{% url 'activar_cliente' c.id_cliente %}" class="btn btn-success btn-sm">✅
-                                    Activar</a>
+                                <a href="{% url 'activar_cliente' c.id_cliente %}"
+                                    class="btn btn-outline-success btn-sm">✅ Activar</a>
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">⚠️ No hay clientes registrados</td>
+                            <td colspan="7" class="text-muted">⚠️ No hay clientes registrados</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-
-    </div>
-    </section>
+        </section>
     </div>
 </main>
 {% endblock %}

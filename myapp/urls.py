@@ -16,22 +16,17 @@ urlpatterns = [
     path("proveedores_menu/", views.proveedores_menu, name="proveedores_menu"),
 
     # Personas
-    path("proveedores/persona/actualizar/<str:id_persona>/", views.actualizar_proveedor_persona, name="actualizar_proveedor_persona"),
-    path("proveedores/persona/desactivar/<str:id_persona>/", views.proveedor_desactivar_persona, name="proveedor_desactivar_persona"),
-    path("proveedores/persona/reactivar/<str:id_persona>/", views.proveedor_reactivar_persona, name="proveedor_reactivar_persona"),
-
-    # Empresas
-    path("proveedores/empresa/actualizar/<str:nit>/", views.actualizar_proveedor_empresa, name="actualizar_proveedor_empresa"),
-    path("proveedores/empresa/desactivar/<str:nit>/", views.proveedor_desactivar_empresa, name="proveedor_desactivar_empresa"),
-    path("proveedores/empresa/reactivar/<str:nit>/", views.proveedor_reactivar_empresa, name="proveedor_reactivar_empresa"),
-    
+    path('proveedor/actualizar/<int:id>/', views.actualizar_proveedor, name='actualizar_proveedor'),
+    path("proveedores/persona/desactivar/<str:id>/", views.proveedor_desactivar, name="proveedor_desactivar"),
+    path("proveedores/persona/reactivar/<str:id>/", views.proveedor_reactivar, name="proveedor_reactivar"),
 
     # ------------------------
     # Productos
     # ------------------------
-    path("productos_menu/", views.productos_menu, name="productos_menu"),
+    path("productos/", views.productos_menu, name="productos_menu"),
     path("productos/actualizar/<str:codigo>/", views.actualizar_producto, name="actualizar_producto"),
-    path("productos/eliminar/<str:codigo>/", views.eliminar_producto, name="eliminar_producto"),
+    path("productos/desactivar/<str:codigo>/", views.desactivar_producto, name="desactivar_producto"),
+    path("productos/activar/<str:codigo>/", views.activar_producto, name="activar_producto"),
 
     # ------------------------
     # Clientes
@@ -40,6 +35,17 @@ urlpatterns = [
     path("clientes/actualizar/<str:id_cliente>/", views.actualizar_cliente, name="actualizar_cliente"),
     path("clientes/desactivar/<str:id_cliente>/", views.desactivar_cliente, name="desactivar_cliente"),
     path("clientes/activar/<str:id_cliente>/", views.activar_cliente, name="activar_cliente"),
+    
+    # ------------------------
+    # Movimientos
+    # ------------------------
+    path('compras/', views.registrar_compra, name='compras_menu'),
+    path('movimientos/', views.movimientos_compra, name='movimientos_compras'),
+
+    path("facturas/", views.facturas_compra, name="facturas_compra"),
+    path("factura/<int:pk>/", views.factura_detalle, name="factura_detalle"),
+    path("factura/<int:pk>/eliminar/", views.eliminar_factura, name="eliminar_factura"),
+
 
 ]
 

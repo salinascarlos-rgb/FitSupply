@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-k=$g=!7l=&&0jlgczlg(2!uxv&zm$50+t2u&cs6mc-6l6rq%98'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS").split(",")
 
 
 # Application definition
@@ -75,14 +79,16 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'fitsupply',
-        'USER': 'root',
-        'PASSWORD': 's_AlInAs07',
-        'HOST': '127.0.0.1',
-        'PORT': '3306'
+        'ENGINE': os.getenv("DJANGO_DB_ENGINE"),
+        'NAME': os.getenv("DJANGO_DB_NAME"),
+        'USER': os.getenv("DJANGO_DB_USER"),
+        'PASSWORD': os.getenv("DJANGO_DB_PASSWORD"),
+        'HOST': os.getenv("DJANGO_DB_HOST"),
+        'PORT': os.getenv("DJANGO_DB_PORT"),
     }
 }
+
+
 
 
 # Password validation
@@ -119,7 +125,17 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# Archivos estáticos (CSS, JS, imágenes)
+STATIC_URL = '/static/'
+
+# Carpeta donde Django copiará todos los archivos estáticos cuando corras collectstatic
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Carpeta donde buscará los archivos durante el desarrollo
+STATICFILES_DIRS = [
+    BASE_DIR / "myapp" / "static",
+]
+
 
 LOGIN_URL = '/signin'
 

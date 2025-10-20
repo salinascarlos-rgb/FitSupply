@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="container mt-5">
+    <div class="card shadow p-4">
+        <h2 class="text-center mb-4">📊 Movimientos de Compras</h2>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered text-center align-middle" style="min-width: 1000px;">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID Factura</th>
+                        <th>Proveedor</th>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for factura in facturas %}
+                        {% for detalle in factura.detalles.all %}
+                            <tr>
+                                <td>{{ factura.id_factura }}</td>
+                                <td>{{ factura.proveedor }}</td>
+                                <td>{{ factura.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ detalle.producto.nombre }}</td>
+                                <td>{{ detalle.cantidad }}</td>
+                                <td>{{ detalle.precio_unitario }}</td>
+                                <td>{{ detalle.subtotal }}</td>
+                                <td>{{ factura.total }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% empty %}
+                        <tr><td colspan="8">⚠️ No hay movimientos registrados</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+{% endblock %}

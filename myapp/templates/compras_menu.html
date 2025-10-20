@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="container mt-5">
+    <div class="card shadow p-4">
+        <h2 class="text-center mb-4">🧾 Registro de Compras</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} text-center">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                {{ factura_form.as_p }}
+            </div>
+            <div class="mb-3">
+                {{ detalle_form.as_p }}
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-success">💾 Registrar Compra</button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

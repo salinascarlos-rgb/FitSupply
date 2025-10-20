@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="container mt-5">
+    <div class="row">
+        <section class="col-md-10 offset-md-1">
+            <div class="card shadow p-4">
+                <h2 class="text-center mb-4">🧾 Gestión de Facturas de Compra</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} text-center">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Pestañas -->
+                <ul class="nav nav-tabs mb-3 justify-content-center">
+                    <li class="nav-item">
+                        <a class="nav-link {% if opcion == 'registrar' %}active{% endif %}" href="?opcion=registrar">➕ Registrar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if opcion == 'consultar' %}active{% endif %}" href="?opcion=consultar">📋 Consultar</a>
+                    </li>
+                </ul>
+
+                <!-- Registrar factura -->
+                {% if opcion == "registrar" %}
+                <form method="post">
+                    {% csrf_token %}
+                    <h5 class="text-center mb-3">📥 Nueva Factura de Compra</h5>
+                    {{ form_factura.as_p }}
+                    <hr>
+                    <h5 class="text-center mb-3">🧩 Detalle de Compra</h5>
+                    {{ form_detalle.as_p }}
+                    <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-success">💾 Guardar Factura</button>
+                    </div>
+                </form>
+
+                {% elif opcion == "consultar" %}
+                <form method="get" class="mb-3">
+                    <input type="text" name="buscar" class="form-control" placeholder="🔍 Buscar por proveedor o ID...">
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered text-center">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID Factura</th>
+                                <th>Proveedor</th>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for factura in facturas %}
+                            <tr>
+                                <td>{{ factura.id_factura }}</td>
+                                <td>{{ factura.proveedor }}</td>
+                                <td>{{ factura.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>${{ factura.total }}</td>
+                                <td>
+                                    <a href="{% url 'factura_detalle' factura.pk %}" class="btn btn-outline-primary btn-sm">👁️ Ver</a>
+                                    <a href="{% url 'eliminar_factura' factura.pk %}" class="btn btn-outline-danger btn-sm">🗑️ Eliminar</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-muted">⚠️ No hay facturas registradas</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}
