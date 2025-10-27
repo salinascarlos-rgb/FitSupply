@@ -158,25 +158,40 @@ class DetalleCompra(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
-    iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=16)  # 16% por defecto
+    iva_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=16)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, editable=False, default=0)
     iva_monto = models.DecimalField(max_digits=12, decimal_places=2, editable=False, default=0)
     total_linea = models.DecimalField(max_digits=12, decimal_places=2, editable=False, default=0)
 
     def save(self, *args, **kwargs):
-        # Calcular valores automáticos
         self.subtotal = self.cantidad * self.precio_unitario
         self.iva_monto = (self.subtotal * self.iva_porcentaje) / Decimal("100")
         self.total_linea = self.subtotal + self.iva_monto
-
         super().save(*args, **kwargs)
+        self.factura.calcular_totales() 
 
-        # Actualizar stock del producto
-        self.producto.stock += self.cantidad
-        self.producto.save()
+# models.py
+class MovimientoInventario(models.Model):
+    TIPO_CHOICES = [
+        ('ENTRADA', 'Entrada'),
+        ('SALIDA', 'Salida'),
+    ]
 
-        # Actualizar totales de la factura
-        self.factura.calcular_totales()
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    cantidad = models.PositiveIntegerField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    factura = models.ForeignKey(FacturaCompra, on_delete=models.SET_NULL, null=True, blank=True)
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Nuevo campo
+    proveedor = models.ForeignKey('Proveedor', on_delete=models.SET_NULL, null=True, blank=True)
+
+    stock_anterior = models.IntegerField(default=0)
+    stock_nuevo = models.IntegerField(default=0)
+    activo = models.BooleanField(default=True)
+    observacion = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.producto.nombre} x {self.cantidad} (Factura {self.factura.numero_factura})"
+        return f"{self.tipo} - {self.producto.nombre} ({self.cantidad})"
+

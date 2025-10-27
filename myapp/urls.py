@@ -39,12 +39,12 @@ urlpatterns = [
     # ------------------------
     # Movimientos
     # ------------------------
-    path('compras/', views.registrar_compra, name='compras_menu'),
-    path('movimientos/', views.movimientos_compra, name='movimientos_compras'),
-
     path("facturas/", views.facturas_compra, name="facturas_compra"),
     path("factura/<int:pk>/", views.factura_detalle, name="factura_detalle"),
-    path("factura/<int:pk>/eliminar/", views.eliminar_factura, name="eliminar_factura"),
+    path("factura/anular/<int:pk>/", views.anular_factura, name="anular_factura"),
+    path("movimientos/", views.movimientos_inventario, name="movimientos_inventario"),
+
+
 
 
 ]

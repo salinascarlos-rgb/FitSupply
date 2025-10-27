@@ -7,7 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from .forms import ProveedorForm, ProveedorPersonaForm, ProveedorEmpresaForm, ProductoForm, BuscarProductoForm, ActualizarProductoForm, BuscarProveedorForm, ClienteForm, BuscarClienteForm, FacturaCompraForm, DetalleCompraForm
-from .models import Proveedor, ProveedorPersona, ProveedorEmpresa, Producto, Cliente, FacturaCompra, DetalleCompra
+from .models import Proveedor, ProveedorPersona, ProveedorEmpresa, Producto, Cliente, FacturaCompra, DetalleCompra, MovimientoInventario
+from datetime import datetime
 
 def home(request):
     return render(request, 'home.html')
@@ -295,8 +296,8 @@ def proveedores_menu(request):
 # ACTUALIZAR PROVEEDOR
 # ============================================================
 @login_required
-def actualizar_proveedor(request, pk):
-    proveedor = get_object_or_404(Proveedor, pk=pk)
+def actualizar_proveedor(request, id):
+    proveedor = get_object_or_404(Proveedor, pk=id)
     if request.method == "POST":
         form = ProveedorForm(request.POST, instance=proveedor)
         if form.is_valid():
@@ -318,8 +319,8 @@ def actualizar_proveedor(request, pk):
 # DESACTIVAR PROVEEDOR
 # ============================================================
 @login_required
-def proveedor_desactivar(request, pk):
-    proveedor = get_object_or_404(Proveedor, pk=pk)
+def proveedor_desactivar(request, id):
+    proveedor = get_object_or_404(Proveedor, pk=id)
     if request.method == "POST":
         proveedor.activo = False
         proveedor.save()
@@ -336,8 +337,8 @@ def proveedor_desactivar(request, pk):
 # REACTIVAR PROVEEDOR
 # ============================================================
 @login_required
-def proveedor_reactivar(request, pk):
-    proveedor = get_object_or_404(Proveedor, pk=pk)
+def proveedor_reactivar(request, id):
+    proveedor = get_object_or_404(Proveedor, pk=id)
     proveedor.activo = True
     proveedor.save()
     messages.success(request, "✅ Proveedor reactivado con éxito.")
@@ -463,26 +464,50 @@ def activar_cliente(request, id_cliente):
     messages.success(request, f"✅ Cliente {cliente.nombre} activado.")
     return redirect("clientes_menu")
 
-# ======================
-# Registrar compra
-# ======================
-
+# ==========================================================
+# 🧾 Registrar compra (actualiza stock y crea movimiento)
+# ==========================================================
 @login_required
 def registrar_compra(request):
     if request.method == "POST":
         factura_form = FacturaCompraForm(request.POST)
         detalle_form = DetalleCompraForm(request.POST)
+
         if factura_form.is_valid() and detalle_form.is_valid():
             factura = factura_form.save()
             detalle = detalle_form.save(commit=False)
             detalle.factura = factura
             detalle.save()
 
+            # ✅ Actualizar total de la factura
             factura.total += detalle.subtotal
             factura.save()
 
-            messages.success(request, "✅ Compra registrada correctamente.")
+            # ============================================
+            # 🧩 Registrar movimiento de inventario (ENTRADA)
+            # ============================================
+            producto = detalle.producto
+            stock_anterior = producto.stock
+            stock_nuevo = stock_anterior + detalle.cantidad
+
+            MovimientoInventario.objects.create(
+                producto=producto,
+                tipo='ENTRADA',
+                cantidad=detalle.cantidad,
+                factura=factura,
+                usuario=request.user,
+                stock_anterior=stock_anterior,
+                stock_nuevo=stock_nuevo,
+                observacion=f"Compra registrada - Factura N° {factura.id}"
+            )
+
+            # ✅ Actualizar stock del producto
+            producto.stock = stock_nuevo
+            producto.save()
+
+            messages.success(request, "✅ Compra registrada correctamente y stock actualizado.")
             return redirect("compras_menu")
+
     else:
         factura_form = FacturaCompraForm()
         detalle_form = DetalleCompraForm()
@@ -492,63 +517,141 @@ def registrar_compra(request):
         "detalle_form": detalle_form,
     })
 
-# ======================
-# Registrar compra
-# ======================
-@login_required
-def movimientos_compra(request):
-    facturas = FacturaCompra.objects.prefetch_related("detalles").order_by("-fecha")
-    return render(request, "movimientos_compras.html", {"facturas": facturas})
-
+# ==========================================================
+# 🧾 Gestión de facturas (registrar / consultar)
+# ==========================================================
 @login_required
 def facturas_compra(request):
     opcion = request.GET.get("opcion", "registrar")
 
+    # REGISTRAR FACTURA
     if opcion == "registrar":
         if request.method == "POST":
             form_factura = FacturaCompraForm(request.POST)
             form_detalle = DetalleCompraForm(request.POST)
+
             if form_factura.is_valid() and form_detalle.is_valid():
-                factura = form_factura.save()
+                factura = form_factura.save(commit=False)
+                factura.usuario_registro = request.user
+                factura.save()
+
                 detalle = form_detalle.save(commit=False)
                 detalle.factura = factura
                 detalle.save()
-                messages.success(request, "✅ Factura registrada correctamente.")
+
+                # ✅ Actualizar stock y registrar movimiento
+                producto = detalle.producto
+                stock_anterior = producto.stock
+                stock_nuevo = stock_anterior + detalle.cantidad
+
+                MovimientoInventario.objects.create(
+                    producto=producto,
+                    tipo='ENTRADA',
+                    cantidad=detalle.cantidad,
+                    factura=factura,
+                    usuario=request.user,
+                    stock_anterior=stock_anterior,
+                    stock_nuevo=stock_nuevo,
+                    observacion=f"Compra registrada - Factura #{factura.numero_factura}"
+                )
+
+                producto.stock = stock_nuevo
+                producto.save()
+
+                messages.success(request, "✅ Factura registrada y movimiento creado correctamente.")
                 return redirect("facturas_compra")
+
         else:
             form_factura = FacturaCompraForm()
             form_detalle = DetalleCompraForm()
+
         return render(request, "facturas_compra_menu.html", {
             "opcion": opcion,
             "form_factura": form_factura,
             "form_detalle": form_detalle,
         })
 
+    # CONSULTAR FACTURAS
     elif opcion == "consultar":
-        facturas = FacturaCompra.objects.all().order_by("-fecha_emision")
+        facturas = FacturaCompra.objects.exclude(estado="anulada").order_by("-fecha_emision")
         return render(request, "facturas_compra_menu.html", {
             "opcion": opcion,
             "facturas": facturas,
         })
 
-# ======================
-# Detalle de factura
-# ======================
+# ==========================================================
+# 📄 Detalle de factura
+# ==========================================================
 @login_required
 def factura_detalle(request, pk):
     factura = get_object_or_404(FacturaCompra, pk=pk)
-    detalles = DetalleCompra.objects.filter(factura=factura)
+    detalles = factura.detalles.all()
+    return render(request, "detalle_factura.html", {"factura": factura, "detalles": detalles})
 
-    return render(request, "detalle_factura.html", {
-        "factura": factura,
-        "detalles": detalles,
-    })
+# ==========================================================
+# ❌ Anular factura
+# ==========================================================
+@login_required
+def anular_factura(request, pk):
+    factura = get_object_or_404(FacturaCompra, pk=pk)
+
+    if factura.estado == "anulada":
+        messages.warning(request, f"La factura #{factura.numero_factura} ya está anulada.")
+        return redirect("facturas_compra")
+
+    # Revertir stock de los productos involucrados
+    for detalle in factura.detalles.all():
+        producto = detalle.producto
+        producto.stock -= detalle.cantidad
+        producto.save()
+
+        # Marcar movimientos asociados como inactivos
+        MovimientoInventario.objects.filter(factura=factura, producto=producto).update(activo=False)
+
+    factura.estado = "anulada"
+    factura.save()
+
+    messages.success(request, f"Factura #{factura.numero_factura} anulada correctamente. Stock revertido.")
+    return redirect("facturas_compra")
+
+# ==========================================================
+# 📋 Movimientos de inventario
+# ==========================================================
 
 @login_required
-def eliminar_factura(request, pk):
-    factura = get_object_or_404(FacturaCompra, pk=pk)
-    if request.method == "POST":
-        factura.delete()
-        messages.success(request, "🗑️ Factura eliminada correctamente.")
-        return redirect("facturas_compra")
-    return render(request, "factura_confirmar_eliminar.html", {"factura": factura})
+def movimientos_inventario(request):
+    query_producto = request.GET.get("producto", "")
+    fecha_desde = request.GET.get("fecha_desde", "")
+    fecha_hasta = request.GET.get("fecha_hasta", "")
+
+    movimientos = MovimientoInventario.objects.select_related(
+        'producto', 'factura', 'usuario'
+    ).order_by('-fecha')
+
+    # Filtros dinámicos
+    if query_producto:
+        movimientos = movimientos.filter(producto__nombre__icontains=query_producto)
+
+    # Filtro por rango de fechas
+    if fecha_desde:
+        try:
+            fecha_inicio = datetime.strptime(fecha_desde, "%Y-%m-%d")
+            movimientos = movimientos.filter(fecha__date__gte=fecha_inicio)
+        except ValueError:
+            pass
+
+    if fecha_hasta:
+        try:
+            fecha_fin = datetime.strptime(fecha_hasta, "%Y-%m-%d")
+            movimientos = movimientos.filter(fecha__date__lte=fecha_fin)
+        except ValueError:
+            pass
+
+    context = {
+        "movimientos": movimientos,
+        "query_producto": query_producto,
+        "fecha_desde": fecha_desde,
+        "fecha_hasta": fecha_hasta,
+    }
+
+    return render(request, "movimientos_inventario.html", context)

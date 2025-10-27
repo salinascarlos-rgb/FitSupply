@@ -5,11 +5,12 @@
     <div class="row">
         <section class="col-md-8 offset-md-2">
             <div class="card shadow p-4 text-center">
-                <h3 class="mb-4">⚠️ Confirmar eliminación</h3>
-                <p>¿Estás seguro que deseas eliminar la factura <strong>#{{ factura.id_factura }}</strong>?</p>
+                <h3 class="mb-4">⚠️ Confirmar anulación</h3>
+                <p>¿Estás seguro de que deseas <strong>anular</strong> la factura 
+                   <strong>#{{ factura.numero_factura }}</strong>?</p>
                 <form method="post">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">🗑️ Sí, eliminar</button>
+                    <button type="submit" class="btn btn-danger">❌ Sí, anular</button>
                     <a href="{% url 'facturas_compra' %}?opcion=consultar" class="btn btn-secondary">❌ Cancelar</a>
                 </form>
             </div>
@@ -17,3 +18,4 @@
     </div>
 </main>
 {% endblock %}
+

@@ -8,20 +8,23 @@
                 <h2 class="text-center mb-4">🧾 Gestión de Facturas de Compra</h2>
 
                 {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} text-center">
-                            {{ message }}
-                        </div>
-                    {% endfor %}
+                {% for message in messages %}
+                <div
+                    class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %} text-center">
+                    {{ message }}
+                </div>
+                {% endfor %}
                 {% endif %}
 
                 <!-- Pestañas -->
                 <ul class="nav nav-tabs mb-3 justify-content-center">
                     <li class="nav-item">
-                        <a class="nav-link {% if opcion == 'registrar' %}active{% endif %}" href="?opcion=registrar">➕ Registrar</a>
+                        <a class="nav-link {% if opcion == 'registrar' %}active{% endif %}" href="?opcion=registrar">➕
+                            Registrar</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if opcion == 'consultar' %}active{% endif %}" href="?opcion=consultar">📋 Consultar</a>
+                        <a class="nav-link {% if opcion == 'consultar' %}active{% endif %}" href="?opcion=consultar">📋
+                            Consultar</a>
                     </li>
                 </ul>
 
@@ -58,19 +61,26 @@
                         <tbody>
                             {% for factura in facturas %}
                             <tr>
-                                <td>{{ factura.id_factura }}</td>
+                                <td>{{ factura.numero_factura }}</td>
                                 <td>{{ factura.proveedor }}</td>
-                                <td>{{ factura.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ factura.fecha_emision|date:"d/m/Y" }}</td>
                                 <td>${{ factura.total }}</td>
                                 <td>
-                                    <a href="{% url 'factura_detalle' factura.pk %}" class="btn btn-outline-primary btn-sm">👁️ Ver</a>
-                                    <a href="{% url 'eliminar_factura' factura.pk %}" class="btn btn-outline-danger btn-sm">🗑️ Eliminar</a>
+                                    <a href="{% url 'factura_detalle' factura.pk %}"
+                                        class="btn btn-outline-primary btn-sm">👁️ Ver</a>
+                                    <a href="{% url 'anular_factura' factura.pk %}"
+                                        class="btn btn-outline-danger btn-sm">
+                                        ❌ Anular
+                                    </a>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="5" class="text-muted">⚠️ No hay facturas registradas</td></tr>
+                            <tr>
+                                <td colspan="5" class="text-muted">⚠️ No hay facturas registradas</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
+
                     </table>
                 </div>
                 {% endif %}
