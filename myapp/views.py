@@ -9,6 +9,8 @@ from django.db.models import Q
 from .forms import ProveedorForm, ProveedorPersonaForm, ProveedorEmpresaForm, ProductoForm, BuscarProductoForm, ActualizarProductoForm, BuscarProveedorForm, ClienteForm, BuscarClienteForm, FacturaCompraForm, DetalleCompraForm
 from .models import Proveedor, ProveedorPersona, ProveedorEmpresa, Producto, Cliente, FacturaCompra, DetalleCompra, MovimientoInventario
 from datetime import datetime
+from django.forms import modelformset_factory
+
 
 def home(request):
     return render(request, 'home.html')
@@ -520,55 +522,61 @@ def registrar_compra(request):
 # ==========================================================
 # 🧾 Gestión de facturas (registrar / consultar)
 # ==========================================================
+
+
 @login_required
 def facturas_compra(request):
     opcion = request.GET.get("opcion", "registrar")
 
     # REGISTRAR FACTURA
     if opcion == "registrar":
+        DetalleCompraFormSet = modelformset_factory(DetalleCompra, form=DetalleCompraForm, extra=3, can_delete=False)
+
         if request.method == "POST":
             form_factura = FacturaCompraForm(request.POST)
-            form_detalle = DetalleCompraForm(request.POST)
+            formset_detalles = DetalleCompraFormSet(request.POST, queryset=DetalleCompra.objects.none())
 
-            if form_factura.is_valid() and form_detalle.is_valid():
+            if form_factura.is_valid() and formset_detalles.is_valid():
                 factura = form_factura.save(commit=False)
                 factura.usuario_registro = request.user
                 factura.save()
 
-                detalle = form_detalle.save(commit=False)
-                detalle.factura = factura
-                detalle.save()
+                for form in formset_detalles:
+                    if form.cleaned_data:
+                        detalle = form.save(commit=False)
+                        detalle.factura = factura
+                        detalle.save()
 
-                # ✅ Actualizar stock y registrar movimiento
-                producto = detalle.producto
-                stock_anterior = producto.stock
-                stock_nuevo = stock_anterior + detalle.cantidad
+                        # Actualiza stock y crea movimiento
+                        producto = detalle.producto
+                        stock_anterior = producto.stock
+                        stock_nuevo = stock_anterior + detalle.cantidad
+                        producto.stock = stock_nuevo
+                        producto.save()
 
-                MovimientoInventario.objects.create(
-                    producto=producto,
-                    tipo='ENTRADA',
-                    cantidad=detalle.cantidad,
-                    factura=factura,
-                    usuario=request.user,
-                    stock_anterior=stock_anterior,
-                    stock_nuevo=stock_nuevo,
-                    observacion=f"Compra registrada - Factura #{factura.numero_factura}"
-                )
+                        MovimientoInventario.objects.create(
+                            producto=producto,
+                            tipo='ENTRADA',
+                            cantidad=detalle.cantidad,
+                            factura=factura,
+                            usuario=request.user,
+                            stock_anterior=stock_anterior,
+                            stock_nuevo=stock_nuevo,
+                            observacion=f"Compra registrada - Factura #{factura.numero_factura}"
+                        )
 
-                producto.stock = stock_nuevo
-                producto.save()
-
-                messages.success(request, "✅ Factura registrada y movimiento creado correctamente.")
+                factura.calcular_totales()
+                messages.success(request, "✅ Factura registrada con múltiples productos correctamente.")
                 return redirect("facturas_compra")
 
         else:
             form_factura = FacturaCompraForm()
-            form_detalle = DetalleCompraForm()
+            formset_detalles = DetalleCompraFormSet(queryset=DetalleCompra.objects.none())
 
         return render(request, "facturas_compra_menu.html", {
             "opcion": opcion,
             "form_factura": form_factura,
-            "form_detalle": form_detalle,
+            "formset_detalles": formset_detalles,
         })
 
     # CONSULTAR FACTURAS
@@ -578,6 +586,7 @@ def facturas_compra(request):
             "opcion": opcion,
             "facturas": facturas,
         })
+
 
 # ==========================================================
 # 📄 Detalle de factura

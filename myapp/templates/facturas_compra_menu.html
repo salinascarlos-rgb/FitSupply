@@ -19,12 +19,10 @@
                 <!-- Pestañas -->
                 <ul class="nav nav-tabs mb-3 justify-content-center">
                     <li class="nav-item">
-                        <a class="nav-link {% if opcion == 'registrar' %}active{% endif %}" href="?opcion=registrar">➕
-                            Registrar</a>
+                        <a class="nav-link {% if opcion == 'registrar' %}active{% endif %}" href="?opcion=registrar">➕ Registrar</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if opcion == 'consultar' %}active{% endif %}" href="?opcion=consultar">📋
-                            Consultar</a>
+                        <a class="nav-link {% if opcion == 'consultar' %}active{% endif %}" href="?opcion=consultar">📋 Consultar</a>
                     </li>
                 </ul>
 
@@ -33,11 +31,40 @@
                 <form method="post">
                     {% csrf_token %}
                     <h5 class="text-center mb-3">📥 Nueva Factura de Compra</h5>
-                    {{ form_factura.as_p }}
+                    <div class="mb-3">
+                        {{ form_factura.as_p }}
+                    </div>
+
                     <hr>
-                    <h5 class="text-center mb-3">🧩 Detalle de Compra</h5>
-                    {{ form_detalle.as_p }}
+                    <h5 class="text-center mb-3">🧩 Detalle de Compra (varios productos)</h5>
+
+                    {{ formset_detalles.management_form }}
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle text-center">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unitario</th>
+                                    <th>IVA (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detalle-forms">
+                                {% for form in formset_detalles %}
+                                <tr>
+                                    <td>{{ form.producto }}</td>
+                                    <td>{{ form.cantidad }}</td>
+                                    <td>{{ form.precio_unitario }}</td>
+                                    <td>{{ form.iva_porcentaje }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
                     <div class="text-center mt-3">
+                        <button type="button" id="add-row" class="btn btn-outline-primary mb-3">➕ Agregar producto</button><br>
                         <button type="submit" class="btn btn-success">💾 Guardar Factura</button>
                     </div>
                 </form>
@@ -66,12 +93,8 @@
                                 <td>{{ factura.fecha_emision|date:"d/m/Y" }}</td>
                                 <td>${{ factura.total }}</td>
                                 <td>
-                                    <a href="{% url 'factura_detalle' factura.pk %}"
-                                        class="btn btn-outline-primary btn-sm">👁️ Ver</a>
-                                    <a href="{% url 'anular_factura' factura.pk %}"
-                                        class="btn btn-outline-danger btn-sm">
-                                        ❌ Anular
-                                    </a>
+                                    <a href="{% url 'factura_detalle' factura.pk %}" class="btn btn-outline-primary btn-sm">👁️ Ver</a>
+                                    <a href="{% url 'anular_factura' factura.pk %}" class="btn btn-outline-danger btn-sm">❌ Anular</a>
                                 </td>
                             </tr>
                             {% empty %}
@@ -80,7 +103,6 @@
                             </tr>
                             {% endfor %}
                         </tbody>
-
                     </table>
                 </div>
                 {% endif %}
@@ -88,4 +110,30 @@
         </section>
     </div>
 </main>
+
+<!-- Script para duplicar filas dinámicamente -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addRowButton = document.getElementById('add-row');
+        const tableBody = document.getElementById('detalle-forms');
+        const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+
+        addRowButton.addEventListener('click', function() {
+            const currentFormCount = parseInt(totalForms.value);
+            const newFormIndex = currentFormCount;
+            const newRow = tableBody.children[0].cloneNode(true);
+
+            newRow.querySelectorAll('input, select').forEach(input => {
+                const name = input.name.replace(/-\d+-/, `-${newFormIndex}-`);
+                const id = 'id_' + name;
+                input.name = name;
+                input.id = id;
+                if (input.tagName === 'INPUT') input.value = '';
+            });
+
+            tableBody.appendChild(newRow);
+            totalForms.value = newFormIndex + 1;
+        });
+    });
+</script>
 {% endblock %}
