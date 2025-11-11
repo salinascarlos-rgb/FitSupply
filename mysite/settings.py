@@ -78,69 +78,44 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# ==============================
+# 🌐 DATABASE (Render + local)
+# ==============================
+import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': os.getenv("DJANGO_DB_ENGINE"),
-        'NAME': os.getenv("DJANGO_DB_NAME"),
-        'USER': os.getenv("DJANGO_DB_USER"),
-        'PASSWORD': os.getenv("DJANGO_DB_PASSWORD"),
-        'HOST': os.getenv("DJANGO_DB_HOST"),
-        'PORT': os.getenv("DJANGO_DB_PORT"),
-    }
+    'default': dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),  # Render la define automáticamente
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
+# ==============================
+# ⚙️ SECURITY / DEBUG / ALLOWED_HOSTS
+# ==============================
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
-USE_I18N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-# Archivos estáticos (CSS, JS, imágenes)
+# ==============================
+# 🧱 STATIC FILES CONFIG (Render)
+# ==============================
 STATIC_URL = '/static/'
-
-# Carpeta donde Django copiará todos los archivos estáticos cuando corras collectstatic
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Carpeta donde buscará los archivos durante el desarrollo
-STATICFILES_DIRS = [
-    BASE_DIR / "myapp" / "static",
-]
+# Whitenoise para servir archivos estáticos en producción
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-
+# ==============================
+# 📦 LOGIN
+# ==============================
 LOGIN_URL = '/signin'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# ==============================
+# 🕒 TIMEZONE
+# ==============================
+LANGUAGE_CODE = 'es'
+TIME_ZONE = 'America/Bogota'
+USE_I18N = True
+USE_TZ = True
