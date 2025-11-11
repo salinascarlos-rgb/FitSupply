@@ -1,15 +1,14 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">✏️ Actualizar Proveedor</h2>
-
-  <form method="POST" class="card p-4 shadow-sm">
+<div class="container mt-4">
+  <h3>✏️ Actualizar Proveedor</h3>
+  <form method="post" novalidate>
     {% csrf_token %}
     {{ form.as_p }}
-
-    <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
-    <a href="{% url 'proveedores_menu' %}" class="btn btn-secondary">↩ Volver</a>
+    <button type="submit" class="btn btn-primary mt-3">💾 Guardar cambios</button>
+    <a href="{% url 'proveedores_menu' %}" class="btn btn-secondary mt-3">↩️ Volver</a>
   </form>
 </div>
 {% endblock %}
+

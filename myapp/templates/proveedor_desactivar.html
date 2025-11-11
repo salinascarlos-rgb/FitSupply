@@ -3,11 +3,11 @@
 {% block content %}
 <div class="container mt-5 text-center">
   <h2>⚠️ Confirmar eliminación</h2>
-  <p>¿Seguro que deseas eliminar al proveedor <strong>{{ proveedor }}</strong>?</p>
+  <p>¿Seguro que deseas desactivar al proveedor <strong>{{ proveedor }}</strong>?</p>
 
   <form method="POST">
     {% csrf_token %}
-    <button type="submit" class="btn btn-danger">🗑 Eliminar</button>
+    <button type="submit" class="btn btn-danger">🗑 Desactivar</button>
     <a href="{% url 'proveedores_menu' %}" class="btn btn-secondary">Cancelar</a>
   </form>
 </div>

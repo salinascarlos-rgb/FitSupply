@@ -7,9 +7,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from .forms import ProveedorForm, ProveedorPersonaForm, ProveedorEmpresaForm, ProductoForm, BuscarProductoForm, ActualizarProductoForm, BuscarProveedorForm, ClienteForm, BuscarClienteForm, FacturaCompraForm, DetalleCompraForm
-from .models import Proveedor, ProveedorPersona, ProveedorEmpresa, Producto, Cliente, FacturaCompra, DetalleCompra, MovimientoInventario
+from .models import Proveedor, ProveedorPersona, ProveedorEmpresa, Producto, Cliente, FacturaCompra, DetalleCompra, MovimientoInventario, LogAuditoria
 from datetime import datetime
 from django.forms import modelformset_factory
+from django.utils import timezone
 
 
 def home(request):
@@ -93,9 +94,9 @@ def signin(request):
             login(request, user)
             return redirect('tasks')
         
-# -------------------------------
-# Vista Productos
-# -------------------------------
+# ------------------------------
+# Productos
+# ------------------------------
 @login_required
 def productos_menu(request):
     opcion = request.GET.get("opcion", "registrar")
@@ -113,9 +114,10 @@ def productos_menu(request):
                 if Producto.objects.filter(codigo=codigo).exists():
                     mensaje = "❌ Ya existe un producto con ese código."
                 else:
-                    form_registrar.save()
-                    mensaje = "✅ Producto registrado con éxito."
-                    form_registrar = ProductoForm()  # Resetear formulario
+                    # Solo guardamos el producto; el signal hará el log
+                    producto = form_registrar.save()
+                    mensaje = f"✅ Producto '{producto.nombre}' registrado con éxito."
+                    form_registrar = ProductoForm()
         else:
             form_registrar = ProductoForm()
         form_buscar = BuscarProductoForm()
@@ -159,6 +161,7 @@ def actualizar_producto(request, codigo):
     if request.method == "POST":
         form = ActualizarProductoForm(request.POST, instance=producto)
         if form.is_valid():
+            # El signal post_save registrará automáticamente la auditoría
             form.save()
             messages.success(request, "✅ Producto actualizado con éxito.")
             return redirect("productos_menu")
@@ -181,13 +184,10 @@ def desactivar_producto(request, codigo):
     producto = get_object_or_404(Producto, codigo=codigo)
     if request.method == "POST":
         producto.activo = False
-        producto.save()
+        producto.save()  # Los signals registrarán la acción "ACTUALIZAR"
         messages.warning(request, f"🚫 Producto {producto.nombre} desactivado.")
         return redirect("productos_menu")
-    return render(request, "producto_confirmar_estado.html", {
-        "producto": producto,
-        "accion": "desactivar"
-    })
+    return render(request, "producto_confirmar_estado.html", {"producto": producto, "accion": "desactivar"})
 
 
 # ------------------------------
@@ -197,9 +197,10 @@ def desactivar_producto(request, codigo):
 def activar_producto(request, codigo):
     producto = get_object_or_404(Producto, codigo=codigo)
     producto.activo = True
-    producto.save()
+    producto.save()  # Los signals registrarán la acción "ACTUALIZAR"
     messages.success(request, f"✅ Producto {producto.nombre} activado.")
     return redirect("productos_menu")
+
 
 # ============================================================
 # MENÚ PRINCIPAL DE PROVEEDORES (UNIFICADO)
@@ -207,12 +208,10 @@ def activar_producto(request, codigo):
 
 @login_required
 def proveedores_menu(request):
-    # pestaña activa por defecto
     opcion = request.GET.get("opcion", "registrar_persona")
     mensaje = None
     resultado = None
 
-    # formularios por defecto
     form_persona = ProveedorPersonaForm()
     form_empresa = ProveedorEmpresaForm()
     form_buscar = BuscarProveedorForm()
@@ -224,16 +223,18 @@ def proveedores_menu(request):
         form_persona = ProveedorPersonaForm(request.POST)
         if form_persona.is_valid():
             persona = form_persona.save()
-            # crear o actualizar entrada puente Proveedor
+
+            # Crear el registro puente Proveedor (automático)
             prov, created = Proveedor.objects.get_or_create(
                 persona=persona,
                 defaults={"tipo": "persona", "activo": persona.activo}
             )
-            if not created:
-                prov.tipo = "persona"
-                prov.activo = persona.activo
-                prov.save()
-            messages.success(request, "✅ Proveedor (persona) registrado correctamente.")
+
+            if created:
+                # El signal de Proveedor registrará la auditoría automáticamente
+                messages.success(request, f"✅ Proveedor (persona) '{persona.nombre}' registrado correctamente.")
+            else:
+                messages.warning(request, "⚠️ Este proveedor ya estaba registrado.")
             return redirect("proveedores_menu")
         else:
             messages.error(request, "⚠️ Corrige los errores en el formulario de persona.")
@@ -245,16 +246,18 @@ def proveedores_menu(request):
         form_empresa = ProveedorEmpresaForm(request.POST)
         if form_empresa.is_valid():
             empresa = form_empresa.save()
-            # crear o actualizar entrada puente Proveedor
+
+            # Crear el registro puente Proveedor (automático)
             prov, created = Proveedor.objects.get_or_create(
                 empresa=empresa,
                 defaults={"tipo": "empresa", "activo": empresa.activo}
             )
-            if not created:
-                prov.tipo = "empresa"
-                prov.activo = empresa.activo
-                prov.save()
-            messages.success(request, "✅ Proveedor (empresa) registrado correctamente.")
+
+            if created:
+                # El signal de Proveedor registrará la auditoría automáticamente
+                messages.success(request, f"✅ Proveedor (empresa) '{empresa.razon_social}' registrado correctamente.")
+            else:
+                messages.warning(request, "⚠️ Esta empresa ya estaba registrada.")
             return redirect("proveedores_menu")
         else:
             messages.error(request, "⚠️ Corrige los errores en el formulario de empresa.")
@@ -266,7 +269,6 @@ def proveedores_menu(request):
         form_buscar = BuscarProveedorForm(request.POST)
         if form_buscar.is_valid():
             q = form_buscar.cleaned_data["query"].strip()
-            # buscar en la tabla puente para incluir ambos tipos
             resultado = Proveedor.objects.select_related("persona", "empresa").filter(
                 Q(persona__id_persona__icontains=q) |
                 Q(persona__nombre__icontains=q) |
@@ -280,7 +282,7 @@ def proveedores_menu(request):
             mensaje = "⚠️ Por favor ingrese un valor válido."
 
     # ---------------------------
-    # Lista general de proveedores (usa la tabla puente)
+    # Lista general de proveedores
     # ---------------------------
     proveedores = Proveedor.objects.select_related("persona", "empresa").all().order_by("tipo", "id")
 
@@ -294,22 +296,36 @@ def proveedores_menu(request):
         "proveedores": proveedores,
     })
 
+
 # ============================================================
 # ACTUALIZAR PROVEEDOR
 # ============================================================
 @login_required
 def actualizar_proveedor(request, id):
     proveedor = get_object_or_404(Proveedor, pk=id)
+
+    # Detectar si es persona o empresa
+    if proveedor.tipo == "persona" and proveedor.persona:
+        instancia = proveedor.persona
+        Formulario = ProveedorPersonaForm
+    elif proveedor.tipo == "empresa" and proveedor.empresa:
+        instancia = proveedor.empresa
+        Formulario = ProveedorEmpresaForm
+    else:
+        messages.error(request, "⚠️ El tipo de proveedor no es válido o está incompleto.")
+        return redirect("proveedores_menu")
+
+    # Manejar el envío
     if request.method == "POST":
-        form = ProveedorForm(request.POST, instance=proveedor)
+        form = Formulario(request.POST, instance=instancia)
         if form.is_valid():
-            form.save()
-            messages.success(request, "✅ Proveedor actualizado con éxito.")
+            form.save()  # El signal registrará la actualización
+            messages.success(request, "✅ Datos del proveedor actualizados con éxito.")
             return redirect("proveedores_menu")
         else:
             messages.error(request, "⚠️ Corrige los errores en el formulario.")
     else:
-        form = ProveedorForm(instance=proveedor)
+        form = Formulario(instance=instancia)
 
     return render(request, "actualizar_proveedor.html", {
         "form": form,
@@ -323,16 +339,20 @@ def actualizar_proveedor(request, id):
 @login_required
 def proveedor_desactivar(request, id):
     proveedor = get_object_or_404(Proveedor, pk=id)
-    if request.method == "POST":
-        proveedor.activo = False
-        proveedor.save()
-        messages.success(request, "🚫 Proveedor desactivado con éxito.")
-        return redirect("proveedores_menu")
 
-    return render(request, "proveedor_confirmar_accion.html", {
-        "proveedor": proveedor,
-        "accion": "desactivar"
-    })
+    if proveedor.tipo == "persona" and proveedor.persona:
+        proveedor.persona.activo = False
+        proveedor.persona.save()
+    elif proveedor.tipo == "empresa" and proveedor.empresa:
+        proveedor.empresa.activo = False
+        proveedor.empresa.save()
+
+    # Sincroniza la tabla puente
+    proveedor.activo = False
+    proveedor.save()  # El signal registrará la auditoría
+
+    messages.warning(request, f"🚫 Proveedor '{proveedor}' desactivado con éxito.")
+    return redirect("proveedores_menu")
 
 
 # ============================================================
@@ -341,9 +361,19 @@ def proveedor_desactivar(request, id):
 @login_required
 def proveedor_reactivar(request, id):
     proveedor = get_object_or_404(Proveedor, pk=id)
+
+    if proveedor.tipo == "persona" and proveedor.persona:
+        proveedor.persona.activo = True
+        proveedor.persona.save()
+    elif proveedor.tipo == "empresa" and proveedor.empresa:
+        proveedor.empresa.activo = True
+        proveedor.empresa.save()
+
+    # Sincroniza la tabla puente
     proveedor.activo = True
-    proveedor.save()
-    messages.success(request, "✅ Proveedor reactivado con éxito.")
+    proveedor.save()  # El signal registrará la auditoría
+
+    messages.success(request, f"✅ Proveedor '{proveedor}' reactivado con éxito.")
     return redirect("proveedores_menu")
 
 
@@ -664,3 +694,51 @@ def movimientos_inventario(request):
     }
 
     return render(request, "movimientos_inventario.html", context)
+
+@login_required
+def auditoria_menu(request):
+    query_usuario = request.GET.get("usuario", "")
+    query_modelo = request.GET.get("modelo", "")
+    fecha_desde = request.GET.get("fecha_desde", "")
+    fecha_hasta = request.GET.get("fecha_hasta", "")
+
+    logs = LogAuditoria.objects.all().order_by("-fecha")
+
+    if query_usuario:
+        logs = logs.filter(usuario__username__icontains=query_usuario)
+    if query_modelo:
+        logs = logs.filter(modelo__icontains=query_modelo)
+    if fecha_desde:
+        logs = logs.filter(fecha__date__gte=fecha_desde)
+    if fecha_hasta:
+        logs = logs.filter(fecha__date__lte=fecha_hasta)
+
+    return render(request, "auditoria_menu.html", {
+        "logs": logs,
+        "query_usuario": query_usuario,
+        "query_modelo": query_modelo,
+        "fecha_desde": fecha_desde,
+        "fecha_hasta": fecha_hasta
+    })
+
+
+def registrar_auditoria(user, accion, modelo, objeto_id, descripcion, request=None):
+    """
+    Registra una acción en el log de auditoría con manejo seguro de usuario.
+    """
+    # Manejar usuario no autenticado o nulo
+    if user is None or not hasattr(user, "username") or user.is_anonymous:
+        username = "—"
+    else:
+        username = user.username
+
+    # Guardar registro
+    LogAuditoria.objects.create(
+        usuario=username,
+        accion=accion.upper(),
+        modelo=modelo,
+        objeto_id=objeto_id,
+        descripcion=descripcion,
+        fecha=timezone.now(),
+        ip=request.META.get('REMOTE_ADDR') if request else None,
+    )

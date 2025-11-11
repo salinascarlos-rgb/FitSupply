@@ -44,6 +44,8 @@ urlpatterns = [
     path("factura/anular/<int:pk>/", views.anular_factura, name="anular_factura"),
     path("movimientos/", views.movimientos_inventario, name="movimientos_inventario"),
 
+    path("auditoria/", views.auditoria_menu, name="auditoria_menu"),
+
 
 
 

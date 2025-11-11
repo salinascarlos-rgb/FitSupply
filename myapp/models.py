@@ -195,3 +195,17 @@ class MovimientoInventario(models.Model):
     def __str__(self):
         return f"{self.tipo} - {self.producto.nombre} ({self.cantidad})"
 
+# ==========================================
+# 🧾 MODELO DE AUDITORÍA
+# ==========================================
+class LogAuditoria(models.Model):
+    usuario = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    modelo = models.CharField(max_length=50)
+    objeto_id = models.CharField(max_length=50)
+    accion = models.CharField(max_length=50)
+    descripcion = models.TextField()
+    fecha = models.DateTimeField(default=timezone.now)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.fecha} - {self.accion} - {self.modelo}"

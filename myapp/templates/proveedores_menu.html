@@ -134,11 +134,32 @@
                             <td>
                                 <a href="{% url 'actualizar_proveedor' proveedor.id %}"
                                     class="btn btn-warning btn-sm">✏️ Editar</a>
-                                <a href="{% url 'proveedor_desactivar' proveedor.id %}" 
-                                    class="btn btn-outline-danger btn-sm">🚫 Desactivar</a>
-                                <a href="{% url 'proveedor_reactivar' proveedor.id %}" 
-                                    class="btn btn-outline-success btn-sm">✅ Reactivar</a>
 
+                                {% if proveedor.tipo == "persona" %}
+                                {% if proveedor.persona.activo %}
+                                <a href="{% url 'proveedor_desactivar' proveedor.id %}"
+                                    class="btn btn-outline-danger btn-sm">
+                                    🚫 Desactivar
+                                </a>
+                                {% else %}
+                                <a href="{% url 'proveedor_reactivar' proveedor.id %}"
+                                    class="btn btn-outline-success btn-sm">
+                                    ✅ Reactivar
+                                </a>
+                                {% endif %}
+                                {% elif proveedor.tipo == "empresa" %}
+                                {% if proveedor.empresa.activo %}
+                                <a href="{% url 'proveedor_desactivar' proveedor.id %}"
+                                    class="btn btn-outline-danger btn-sm">
+                                    🚫 Desactivar
+                                </a>
+                                {% else %}
+                                <a href="{% url 'proveedor_reactivar' proveedor.id %}"
+                                    class="btn btn-outline-success btn-sm">
+                                    ✅ Reactivar
+                                </a>
+                                {% endif %}
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
