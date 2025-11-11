@@ -81,15 +81,23 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # ==============================
 # 🌐 DATABASE (Render + local)
 # ==============================
-import dj_database_url
+
+
+load_dotenv()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),  # Render la define automáticamente
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': os.getenv("DJANGO_DB_ENGINE"),
+        'NAME': os.getenv("DJANGO_DB_NAME"),
+        'USER': os.getenv("DJANGO_DB_USER"),
+        'PASSWORD': os.getenv("DJANGO_DB_PASSWORD"),
+        'HOST': os.getenv("DJANGO_DB_HOST"),
+        'PORT': os.getenv("DJANGO_DB_PORT"),
+    }
 }
+
 
 # ==============================
 # ⚙️ SECURITY / DEBUG / ALLOWED_HOSTS
