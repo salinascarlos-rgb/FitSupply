@@ -109,6 +109,11 @@ ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
 # 🧱 STATIC FILES CONFIG (Render)
 # ==============================
 STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static"
+]
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Whitenoise para servir archivos estáticos en producción

@@ -11,7 +11,9 @@ from .models import Proveedor, ProveedorPersona, ProveedorEmpresa, Producto, Cli
 from datetime import datetime
 from django.forms import modelformset_factory
 from django.utils import timezone
-
+from django.http import FileResponse, Http404
+from pathlib import Path
+from django.conf import settings
 
 def home(request):
     return render(request, 'home.html')
@@ -62,6 +64,18 @@ def signup(request):
 @login_required   
 def tasks(request):
     return render(request, 'tasks.html')
+
+def descargar_manual_pdf(request):
+    ruta_pdf = Path(settings.BASE_DIR, "static", "manuales", "manual_fitsupply.pdf")
+
+    if not ruta_pdf.exists():
+        raise Http404("El manual no existe, socio.")
+
+    return FileResponse(
+        open(ruta_pdf, 'rb'),
+        as_attachment=True,
+        filename="Manual_Usuario_FitSupply.pdf"
+    )
 
 @login_required
 def signout(request):
