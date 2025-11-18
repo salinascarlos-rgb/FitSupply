@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.http import FileResponse, Http404
 from pathlib import Path
 from django.conf import settings
+import os
 
 def home(request):
     return render(request, 'home.html')
@@ -66,15 +67,15 @@ def tasks(request):
     return render(request, 'tasks.html')
 
 def descargar_manual_pdf(request):
-    ruta_pdf = Path(settings.BASE_DIR, "myapp", "static", "manuales", "manual_fitsupply")
+    ruta_pdf = Path(settings.STATIC_ROOT, "manuales", "manual-fitsupply.pdf")
 
     if not ruta_pdf.exists():
-        raise Http404("El manual no existe.")
+        raise Http404(f"El manual no existe en: {ruta_pdf}")
 
     return FileResponse(
         open(ruta_pdf, 'rb'),
         as_attachment=True,
-        filename="Manual_FitSupply"
+        filename="Manual_FitSupply.pdf"
     )
 
 @login_required
