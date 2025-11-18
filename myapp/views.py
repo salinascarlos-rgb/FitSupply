@@ -66,7 +66,7 @@ def tasks(request):
     return render(request, 'tasks.html')
 
 def descargar_manual_pdf(request):
-    ruta_pdf = Path(settings.BASE_DIR, "static", "manuales", "manual_fitsupply.pdf")
+    ruta_pdf = Path(settings.BASE_DIR, "myapp", "static", "manuales", "manual_fitsupply.pdf")
 
     if not ruta_pdf.exists():
         raise Http404("El manual no existe.")
