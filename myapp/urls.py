@@ -45,7 +45,7 @@ urlpatterns = [
     path("movimientos/", views.movimientos_inventario, name="movimientos_inventario"),
 
     path("auditoria/", views.auditoria_menu, name="auditoria_menu"),
-    path("manual/", views.descargar_manual_pdf, name="manual_usuario_pdf"),
+    path("manual/", views.descargar_manual_pdf, name="manual_fitsupply.pdf"),
 
 
 

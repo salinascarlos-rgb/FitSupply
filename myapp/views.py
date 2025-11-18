@@ -69,12 +69,12 @@ def descargar_manual_pdf(request):
     ruta_pdf = Path(settings.BASE_DIR, "static", "manuales", "manual_fitsupply.pdf")
 
     if not ruta_pdf.exists():
-        raise Http404("El manual no existe, socio.")
+        raise Http404("El manual no existe.")
 
     return FileResponse(
         open(ruta_pdf, 'rb'),
         as_attachment=True,
-        filename="Manual_Usuario_FitSupply.pdf"
+        filename="Manual_FitSupply.pdf"
     )
 
 @login_required
