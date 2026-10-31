@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.13%20(bytecode%20present)-3776AB?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/Django-5.2.5-092E20?logo=django&logoColor=white" alt="Django">
   <img src="https://img.shields.io/badge/Database-MySQL-4479A1?logo=mysql&logoColor=white" alt="MySQL">
   <img src="https://img.shields.io/badge/UI-Bootstrap%205-7952B3?logo=bootstrap&logoColor=white" alt="Bootstrap">
